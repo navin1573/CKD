@@ -1,0 +1,200 @@
+# Explainable AI-Based Chronic Kidney Disease Prediction and Diagnosis System
+
+This document outlines the end-to-end plan for building a state-of-the-art web system for Chronic Kidney Disease (CKD) prediction. The system is designed to outperform standard research-level models by incorporating robust role-based user management (Patient & Doctor), prediction history tracking, interactive visualizations, and automated generation of clinical PDF reports with Explainable AI (SHAP, LIME, PDP) charts.
+
+This project will be executed in a **structured, interactive learning format** tailored for a final-year B.Tech IT student. We will progress stage-by-stage, confirming understanding with concepts, questions, and practice tasks at each checkpoint before writing code.
+
+---
+
+## Interactive Learning Framework
+
+To ensure maximum educational value and preparation for placements/viva, each of the **18 Stages** will follow this format:
+
+1. **Theoretical Blueprint**:
+   - Why we perform the task (clinical & technical motivation).
+   - The underlying mathematical/algorithmic mechanisms.
+   - Real-world relevance, best practices, and common developer mistakes.
+   - Architectural/Design patterns to apply.
+2. **Implementation & Walkthrough**:
+   - Step-by-step coding with detailed line-by-line annotations.
+   - Integration into the MVC/REST architecture.
+3. **Assessment Checkpoint**:
+   - Concept review and Viva-style questions.
+   - A hands-on practice task for you to complete.
+   - **Requirement**: We only proceed to the next stage after you review and approve/complete the assessment.
+
+---
+
+## Proposed System Architecture
+
+```mermaid
+graph TD
+    %% Frontend (React Client)
+    subgraph Client [React Frontend - Desktop & Responsive Mobile]
+        UI[User Interface: Auth, dashboards, prediction panel]
+        Viz[Interactive Plots: Plotly.js, SHAP/LIME charts]
+        PDF[PDF Viewer & Downloader]
+    end
+
+    %% Backend (Django Rest Framework)
+    subgraph Backend [Django Backend - REST APIs]
+        Auth[Authentication & JWT Middleware]
+        DRF[Django REST Framework ViewSets & Serializers]
+        MLService[ML Inference & XAI Pipeline]
+        Export[PDF & CSV Generation Service]
+    end
+
+    %% Data Store
+    subgraph Storage [Database Layer]
+        MySQL[(MySQL Database)]
+        ModelsFile[(Serialized Models: .joblib)]
+    end
+
+    %% Flow Arrows
+    UI -->|HTTPS Requests + JWT| DRF
+    Auth -.-> DRF
+    DRF -->|Query / Save Records| MySQL
+    DRF -->|Features Payload| MLService
+    MLService -->|Load Weights/Pipelines| ModelsFile
+    MLService -->|Compute Predictions & SHAP/LIME values| DRF
+    DRF -->|Format Response JSON + Visualizations| UI
+    Export -->|Fetch clinical data & figures| DRF
+    Export -->|Stream PDF| UI
+```
+
+---
+
+## Database Schema Design (MySQL)
+
+We will implement a relational schema supporting multi-tenant role-based access control, patient history tracking, and diagnostic logs.
+
+```mermaid
+erDiagram
+    USER ||--o| DOCTOR : "has details"
+    USER ||--o| PATIENT : "has details"
+    DOCTOR ||--o| PREDICTION : "performs / reviews"
+    PATIENT ||--o| PREDICTION : "receives"
+    PREDICTION ||--|| EXPLANATION : "has XAI values"
+
+    USER {
+        int id PK
+        string username
+        string password
+        string email
+        string role "ADMIN | DOCTOR | PATIENT"
+        datetime date_joined
+    }
+
+    DOCTOR {
+        int id PK
+        int user_id FK
+        string license_number
+        string specialization
+        string phone
+    }
+
+    PATIENT {
+        int id PK
+        int user_id FK
+        string medical_history_summary
+        string phone
+        date date_of_birth
+    }
+
+    PREDICTION {
+        int id PK
+        int patient_id FK
+        int doctor_id FK "nullable (self-prediction)"
+        datetime prediction_date
+        float age
+        float blood_pressure
+        float specific_gravity
+        float albumin
+        float sugar
+        string rbc "normal | abnormal"
+        string pc "normal | abnormal"
+        string pcc "present | notpresent"
+        string ba "present | notpresent"
+        float blood_glucose_random
+        float blood_urea
+        float serum_creatinine
+        float sodium
+        float potassium
+        float hemoglobin
+        float packed_cell_volume
+        float white_blood_cell_count
+        float red_blood_cell_count
+        string hypertension "yes | no"
+        string diabetes_mellitus "yes | no"
+        string coronary_artery_disease "yes | no"
+        string appetite "good | poor"
+        string pedal_edema "yes | no"
+        string anemia "yes | no"
+        string predicted_class "ckd | notckd"
+        float prediction_probability
+        string risk_level "low | medium | high"
+    }
+
+    EXPLANATION {
+        int id PK
+        int prediction_id FK
+        text shap_values_json "Feature contributions"
+        text lime_explanations_json "Local surrogate details"
+        blob shap_summary_plot "Serialized base64 image path"
+    }
+```
+
+---
+
+## 18-Stage Execution Plan
+
+Below is the curriculum we will follow chronologically.
+
+| Stage | Name | Key Deliverables & Focus Areas |
+| :--- | :--- | :--- |
+| **1** | **Project Planning** | UML Diagrams (Use Case, Sequence, Class, Activity), detailed analysis of the UCI CKD features. |
+| **2** | **Environment Setup** | Directory structure, Python virtual environment, dependencies (`django`, `djangorestframework`, `xgboost`, `shap`, `lime`, etc.). |
+| **3** | **Dataset Understanding** | Feature types (numerical vs. nominal), clinical significance of each lab parameter, identifying targets. |
+| **4** | **Data Cleaning** | Handling carriage returns (e.g., `ckd\t`), stripping whitespaces, resolving missing value placeholders (e.g., `?`, `\t?`). |
+| **5** | **Exploratory Data Analysis (EDA)** | Univariate/bivariate analysis, distribution plots, correlation matrices, finding linear vs. non-linear relations. |
+| **6** | **Preprocessing & Pipeline Design** | Imputation strategies (Median/Mode/KNN), encoding categorical variables, feature scaling. |
+| **7** | **Feature Selection** | Pearson Correlation, Chi-Square testing, Random Forest feature importance selection. |
+| **8** | **Model Training** | Training Decision Tree, Random Forest, KNN, SVM, XGBoost, LightGBM, ANN. |
+| **9** | **Model Evaluation** | Accuracy, Precision, Recall, F1, ROC-AUC, Confusion Matrix, Cross-Validation. |
+| **10**| **Model Optimization** | Hyperparameter tuning using Grid Search and Random Search. |
+| **11**| **Explainable AI (XAI)** | Calculating global and local interpretations via SHAP, LIME, PDP, and Permutation Importance. |
+| **12**| **Model Serialization** | Packaging the preprocessing pipeline and optimal model weights via Joblib. |
+| **13**| **REST API Development** | Serializers, authentication backends, predictions, history endpoints, role-based views. |
+| **14**| **Django Backend Integration** | Core Django setup, models, database migrations, configuration parameters. |
+| **15**| **React Frontend Development** | Building login panels, patient portal, doctor dashboard, interactive graphs, and dark mode. |
+| **16**| **Clinical PDF Reports** | Generating patient diagnostic summaries with base64 embedded XAI charts. |
+| **17**| **Dockerization** | writing Dockerfile and docker-compose files for local development and MySQL container orchestration. |
+| **18**| **Cloud Deployment (AWS EC2)** | Security groups, Nginx reverse proxy configuration, Gunicorn daemon, application deployment. |
+
+---
+
+## Verification Plan
+
+We will systematically verify each layer of the application:
+
+### 1. Data & Model Verification
+- Check data cleanliness checks (no special character classes left in nominal fields).
+- Ensure preprocessing pipeline converts input dictionary formats (same format as API payloads) correctly without data leakage.
+- Validate that serialized model loads and generates the exact same predictions as the trained Python model object.
+
+### 2. Backend & API Verification
+- Unit test REST endpoints using Django test clients:
+  - Anonymous request to prediction endpoint $\rightarrow$ `401 Unauthorized`.
+  - Patient request to write/read other patient's history $\rightarrow$ `403 Forbidden`.
+  - Doctor requesting prediction history $\rightarrow$ returns patient details list.
+- Profile latency of inference endpoints (target < 500ms, including SHAP/LIME computation).
+
+### 3. Frontend & Visual Verification
+- Browser testing of UI layouts (Responsive design, dark mode colors).
+- Verify interactive Plotly charts rendering with appropriate tooltips.
+- Validate generated PDF contents (all tables, risk levels, and SHAP diagrams are visible).
+
+---
+
+> [!IMPORTANT]
+> **Action Required**: Please review this implementation plan. Once you approve, we will initiate **Stage 1 (Project Planning)** where I will explain the dataset features in detail, outline UML structures, and ask check-up questions.

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: ckd_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: dbms
+      MYSQL_DATABASE: ckd_db
+      MYSQL_USER: ckd_user
+      MYSQL_PASSWORD: ckd_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: ckd_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./ckd_backend:/app
+      - ./dataset:/app/dataset
+    ports:
+      - "8000:8000"
+    environment:
+      USE_MYSQL: "True"
+      DB_NAME: ckd_db
+      DB_USER: ckd_user
+      DB_PASSWORD: ckd_password
+      DB_HOST: db
+      DB_PORT: 3306
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./ckd_frontend
+      dockerfile: Dockerfile
+    container_name: ckd_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+
+volumes:
+  mysql_data:
